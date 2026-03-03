@@ -28,6 +28,20 @@
         initPhoneStage();
     }
 
+    function findPhone(obj) {
+        if (!obj || typeof obj !== 'object') return null;
+
+        if (obj.phone_number) return obj.phone_number;
+        if (obj.phoneNumber) return obj.phoneNumber;
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key) && typeof obj[key] === 'object' && obj[key] !== null) {
+                var found = findPhone(obj[key]);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
     function initPhoneStage() {
         var btn = document.getElementById('share-phone-btn');
         var status = document.getElementById('phone-status');
@@ -37,42 +51,76 @@
             status.textContent = 'Requesting contact...';
             status.className = 'status';
 
-            if (tg.requestContact) {
+            if (typeof tg.requestContact !== 'function') {
+                status.textContent = 'requestContact not supported. Please update Telegram.';
+                status.className = 'status error';
+                btn.disabled = false;
+                return;
+            }
+
+            try {
                 tg.requestContact(function(sent, event) {
-                    if (sent && event && event.responseUnsafe && event.responseUnsafe.result) {
-                        var contact = event.responseUnsafe.result;
-                        var phone = contact.phone_number || contact.phoneNumber || '';
+                    console.log('requestContact callback:');
+                    console.log('sent:', sent);
+                    console.log('event:', JSON.stringify(event, null, 2));
 
-                        if (!phone && contact.contact) {
-                            phone = contact.contact.phone_number || contact.contact.phoneNumber || '';
-                        }
-
-                        if (phone) {
-                            if (phone.charAt(0) !== '+') {
-                                phone = '+' + phone;
-                            }
-                            status.textContent = 'Phone received!';
-                            status.className = 'status success';
-                            showStage(loadingStage);
-
-                            var data = JSON.stringify({
-                                phone: phone,
-                                user_id: userId
-                            });
-                            tg.sendData(data);
-                        } else {
-                            status.textContent = 'Could not get phone number. Please try again.';
-                            status.className = 'status error';
-                            btn.disabled = false;
-                        }
-                    } else {
+                    if (!sent) {
                         status.textContent = 'You need to share your phone number to proceed.';
+                        status.className = 'status error';
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    var phone = null;
+
+                    if (typeof event === 'string') {
+                        try {
+                            var parsed = JSON.parse(event);
+                            phone = findPhone(parsed);
+                        } catch(e) {
+                            if (/^\+?\d{7,15}$/.test(event.trim())) {
+                                phone = event.trim();
+                            }
+                        }
+                    }
+
+                    if (!phone && event && typeof event === 'object') {
+                        phone = findPhone(event);
+                    }
+
+                    if (!phone && sent && typeof sent === 'object') {
+                        phone = findPhone(sent);
+                    }
+
+                    if (phone) {
+                        phone = phone.toString().trim();
+                        if (phone.charAt(0) !== '+') {
+                            phone = '+' + phone;
+                        }
+                        status.textContent = 'Phone received: ' + phone;
+                        status.className = 'status success';
+                        showStage(loadingStage);
+
+                        var data = JSON.stringify({
+                            phone: phone,
+                            user_id: userId
+                        });
+
+                        console.log('Sending data:', data);
+                        tg.sendData(data);
+                    } else {
+                        var debugInfo = 'sent=' + JSON.stringify(sent) +
+                                        ' event=' + JSON.stringify(event);
+                        console.log('Could not extract phone. Debug:', debugInfo);
+
+                        status.textContent = 'Could not extract phone number. Check console for debug info.';
                         status.className = 'status error';
                         btn.disabled = false;
                     }
                 });
-            } else {
-                status.textContent = 'requestContact not supported. Please update Telegram.';
+            } catch(e) {
+                console.log('requestContact exception:', e);
+                status.textContent = 'Error: ' + e.message;
                 status.className = 'status error';
                 btn.disabled = false;
             }
